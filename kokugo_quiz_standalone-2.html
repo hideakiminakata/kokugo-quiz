@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>国語クイズ ブラウザアプリ</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --soft: #f1f5f9;
+      --dark: #0f172a;
+      --green: #16a34a;
+      --green-soft: #dcfce7;
+      --red: #dc2626;
+      --red-soft: #fee2e2;
+      --shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 10px 24px rgba(15, 23, 42, 0.04);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', Meiryo, sans-serif; background: var(--bg); color: var(--text); }
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 20px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 28px; box-shadow: var(--shadow); }
+    .header { padding: 22px; margin-bottom: 16px; display: flex; gap: 18px; justify-content: space-between; align-items: end; flex-wrap: wrap; }
+    h1 { margin: 0; font-size: 30px; line-height: 1.2; letter-spacing: -.02em; }
+    .subtitle { margin: 8px 0 0; color: var(--muted); font-size: 14px; line-height: 1.8; max-width: 56rem; }
+    .filebox { min-width: 310px; padding: 16px; border-radius: 20px; background: var(--soft); border: 1px solid var(--line); }
+    .label { display:block; font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 8px; }
+    input[type="file"] { width: 100%; font-size: 14px; }
+    .tiny { margin-top: 8px; font-size: 12px; color: var(--muted); word-break: break-all; }
+    .toolbar { padding: 16px 18px; margin-bottom: 16px; }
+    .toolbar-top { display:flex; gap: 14px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+    .toolbar-actions { display:flex; gap: 10px; flex-wrap: wrap; }
+    button { border: 0; border-radius: 999px; padding: 12px 16px; font-weight: 700; cursor: pointer; transition: .15s ease; }
+    button:hover { transform: translateY(-1px); }
+    .btn-dark { background: var(--dark); color: white; }
+    .btn-light { background: white; color: #334155; border: 1px solid var(--line); }
+    .days { display:flex; gap: 10px; overflow-x: auto; padding-top: 14px; padding-bottom: 2px; }
+    .daybtn { min-width: 128px; text-align: left; padding: 11px 12px; border-radius: 18px; background: #f1f5f9; color: #334155; border: 1px solid transparent; flex: 0 0 auto; }
+    .daybtn.active { background: var(--dark); color: white; box-shadow: 0 10px 24px rgba(15,23,42,.15); }
+    .daybtn .day { font-weight: 800; font-size: 14px; }
+    .daybtn .title { font-size: 12px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: .95; }
+    .daybtn .meta { font-size: 12px; margin-top: 6px; }
+    .layout { display:grid; grid-template-columns: 1.15fr .85fr; gap: 18px; }
+    @media (max-width: 980px) { .layout { grid-template-columns: 1fr; } .filebox { min-width: 100%; } }
+    .main, .side { padding: 22px; }
+    .quizhead { display:flex; gap: 12px; justify-content: space-between; align-items:flex-start; flex-wrap: wrap; }
+    .dayname { font-size: 13px; color: var(--muted); font-weight: 700; }
+    .quiztitle { margin: 6px 0 0; font-size: 26px; line-height: 1.25; letter-spacing: -.02em; }
+    .countpill { background: var(--soft); border: 1px solid var(--line); border-radius: 16px; padding: 9px 14px; color:#334155; font-size: 14px; font-weight: 700; }
+    .passage { margin-top: 18px; background: var(--soft); border: 1px solid var(--line); border-radius: 24px; padding: 18px; line-height: 1.95; white-space: pre-wrap; font-size: 15px; }
+    .q { margin-top: 14px; border: 1px solid var(--line); border-radius: 22px; padding: 16px; }
+    .qhead { display:flex; justify-content: space-between; gap: 10px; align-items:flex-start; margin-bottom: 12px; }
+    .qtitle { margin: 0; font-size: 16px; line-height: 1.8; }
+    .mark { flex:0 0 auto; border-radius: 999px; padding: 5px 11px; font-size: 12px; font-weight: 800; }
+    .mark.ok { background: var(--green-soft); color: var(--green); }
+    .mark.ng { background: var(--red-soft); color: var(--red); }
+    .choices { display:grid; gap: 8px; }
+    .choice { width: 100%; display:flex; gap: 12px; align-items:flex-start; text-align:left; border:1px solid var(--line); background: white; border-radius: 16px; padding: 12px 14px; font-weight: 500; color:#0f172a; }
+    .choice:hover { background:#f8fafc; }
+    .choice .num { width: 28px; height: 28px; border-radius: 999px; display:grid; place-items:center; font-weight: 800; font-size: 14px; flex: 0 0 auto; background: #e2e8f0; color:#334155; }
+    .choice.selected { background: #f1f5f9; border-color: var(--dark); }
+    .choice.correct { background: #dcfce7; border-color: #4ade80; }
+    .choice.wrong { background: #fee2e2; border-color: #f87171; }
+    .choice.correct .num { background: var(--green); color: white; }
+    .choice.wrong .num { background: var(--red); color: white; }
+    .choice.selected .num { background: var(--dark); color: white; }
+    .side h3 { margin:0; font-size: 19px; }
+    .scorebox { margin-top: 14px; background: var(--soft); border: 1px solid var(--line); border-radius: 24px; padding: 18px; min-height: 116px; display:flex; flex-direction:column; justify-content:center; }
+    .score { font-size: 44px; font-weight: 900; line-height: 1; letter-spacing: -.03em; }
+    .score small { font-size: 18px; color: var(--muted); font-weight: 800; }
+    .side p, .side li { color: #475569; line-height: 1.85; font-size: 14px; }
+    .notice { margin-top: 14px; font-size: 13px; color: var(--muted); line-height: 1.8; }
+    .error { margin: 0 0 16px; padding: 14px 16px; border-radius: 18px; border: 1px solid #fecaca; background:#fef2f2; color:#b91c1c; font-size: 14px; display:none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card header">
+      <div>
+        <h1>国語クイズ ブラウザアプリ</h1>
+        <p class="subtitle">CSVを読み込んで、日ごとに問題を解き、<b>その日ごとに採点</b>できます。保存したHTMLをダブルクリックして開けば、そのまま使えます。</p>
+      </div>
+      <div class="filebox">
+        <label class="label">CSVファイルを読み込む</label>
+        <input id="fileInput" type="file" accept=".csv,text/csv" />
+        <div id="fileName" class="tiny">現在のファイル: chiba_kokugo_levelA_day1-20.csv（埋め込み済み）</div>
+      </div>
+    </div>
+
+    <div id="errorBox" class="error"></div>
+
+    <div class="card toolbar">
+      <div class="toolbar-top">
+        <div>
+          <div style="font-size:13px;font-weight:800;color:#334155;">問題セット</div>
+          <div id="countText" style="font-size:14px;color:var(--muted);margin-top:4px;">全 0 日分</div>
+        </div>
+        <div class="toolbar-actions">
+          <button id="restoreBtn" class="btn-dark">初期CSVに戻す</button>
+          <button id="clearAllBtn" class="btn-light">全解答をクリア</button>
+        </div>
+      </div>
+      <div id="dayTabs" class="days"></div>
+    </div>
+
+    <div id="contentArea"></div>
+  </div>
+
+<script>
+const defaultCsv = "day,title,passage,q1,q2,q3,q4,q5,answer_key\nDay1,積み重ねる学習,\"私たちは何かを学ぶとき、できるだけ早く身につけたいと考えがちである。短い時間で結果が出れば安心できるし、努力が報われたようにも感じるからだ。しかし、学習の多くは一気に完成するものではない。毎日の少しずつの積み重ねによって、ある時点で力として見えるようになる。\n\nたとえば、漢字を覚えるとき、最初から正確に書ける人は少ない。何度も見て、書いて、間違え、修正する中で少しずつ定着していく。運動でも同じである。新しい動きを覚えるときは、最初は思い通りにならないが、繰り返すうちに体が覚えていく。ところが、人は自分の変化に気づきにくい。昨日の自分と今日の自分を比べると大差がないように見えるため、「成長していない」と感じてしまうことがある。\n\nしかし、一週間前、一か月前の自分と比べると、できることは確かに増えていることがある。学習は、目に見える成果がすぐに現れなくても、内部では進んでいる場合が多い。だからこそ、焦って結果だけを求めるのではなく、続けること自体に価値がある。工夫した練習や復習が積み重なれば、見えないところで力は育っていくのである。\",\"筆者が大切だと考えているのはどれか。\n① すぐに結果を求めること\n② 一度で完璧にすること\n③ 少しずつ続けること\n④ 失敗しないこと\",\"「しかし」が示す内容として最も適切なのはどれか。\n① 学習は一気に完成しない\n② 努力は意味がない\n③ 結果は必ずすぐに出る\n④ 練習は不要である\",\"漢字や運動の例で共通していることはどれか。\n① 最初から簡単である\n② 繰り返すことで身につく\n③ 誰でも一回で覚えられる\n④ 努力しなくてもよい\",\"本文の要旨として最も適切なのはどれか。\n① 学習は短時間で終わる\n② 成長は見えにくくても積み重なっている\n③ 結果だけが全てである\n④ 工夫は必要ない\",\"本文から考えられることはどれか。\n① 昨日と今日で変化がなくても意味がない\n② 目に見えない進歩もある\n③ 練習は長すぎるので避けるべきだ\n④ 復習は役に立たない\",\"3,1,2,2,2\"\nDay2,失敗を学びに変える,\"失敗をすると、多くの人は落ち込む。うまくいかなかった事実は気持ちを重くし、自分には向いていないのではないかと考えさせることもある。しかし、失敗は終わりではなく、次に進むための材料にもなる。なぜ失敗したのかを考えることで、同じ間違いを繰り返さないための手がかりが得られるからである。\n\nたとえば、テストで間違えた問題は、答えを見ただけで終わらせるとすぐに忘れてしまう。しかし、どこで考え違いをしたのかを確認すると、知識の抜けや勘違いが見えてくる。そうして原因を理解すれば、次は同じ形の問題に出会っても対応しやすくなる。失敗は、ただ嫌な経験として片づけるより、次の行動を整えるための出発点として見る方が役に立つ。\n\nもちろん、失敗した直後にすぐ前向きになれないこともある。悔しさや恥ずかしさを感じるのは自然なことである。ただ、その気持ちのまま立ち止まるのではなく、少し時間をおいて振り返ることが大切だ。失敗を避けることだけを目標にすると挑戦できなくなるが、失敗から学べると考えれば、新しいことにも取り組みやすくなる。\",\"筆者は失敗をどう捉えているか。\n① 避けるべきもの\n② 学びの材料\n③ 恥ずかしいだけのもの\n④ 完全な終わり\",\"「しかし」が示す内容として最も適切なのはどれか。\n① 失敗は役に立たない\n② 失敗は次に進む手がかりになる\n③ 失敗は必ず隠すべきだ\n④ 失敗はすぐに忘れるべきだ\",\"テストの間違いを見直すと何が分かるか。\n① 知識の抜けや勘違い\n② 先生の採点ミスだけ\n③ 試験の運の良し悪し\n④ 自分の性格\",\"本文の要旨として最も適切なのはどれか。\n① 失敗はできるだけ避けるべきだ\n② 失敗は次の成長につながる\n③ 失敗は誰にも必要ない\n④ 挑戦はしない方がよい\",\"本文から考えられることはどれか。\n① 振り返りは無意味である\n② 原因を考えることで改善できる\n③ 悔しさは感じない方がよい\n④ 失敗したら挑戦をやめるべきだ\",\"2,2,1,2,2\"\nDay3,読書の幅を広げる,\"図書館に行くと、自分の興味に合う本をすぐに見つけることができる。好きな分野の本を読むのは楽しいし、知りたいことを効率よく調べる助けにもなる。しかし、普段は選ばない分野の本を手に取ることで、思いがけない発見が生まれることがある。\n\nたとえば、歴史が好きな人が科学の本を読んだとき、まったく別の視点から物事を見るきっかけを得ることがある。逆に、物語ばかり読んでいた人が説明文を読むと、情報を整理して理解する力が鍛えられる場合もある。読書の価値は、知っていることを確認するだけではなく、知らなかった考え方に触れられる点にもある。\n\nもちろん、自分の得意な分野を深めることも大切である。ただ、それだけに偏ると、見方が狭くなることがある。さまざまな本に触れることは、自分の世界を広げることにつながる。新しい本との出会いは、今まで気づかなかった考えや興味を呼び起こすきっかけになるのである。\",\"本文で図書館について述べられていることはどれか。\n① 好きな本だけを置く場所\n② さまざまな本に触れられる場所\n③ 勉強しない人の場所\n④ 小説だけの場所\",\"「しかし」が示す内容として最も適切なのはどれか。\n① 興味のある本だけで十分である\n② 普段読まない本にも価値がある\n③ 図書館は不要である\n④ 本を読む必要はない\",\"歴史が好きな人が科学の本を読むとどうなることがあるか。\n① 別の視点を得られる\n② 歴史が消える\n③ 科学だけが分かる\n④ 読書が嫌になる\",\"本文の要旨として最も適切なのはどれか。\n① 自分の好きな本だけ読めばよい\n② 読書の幅を広げると考え方が広がる\n③ 図書館は静かな場所である\n④ 本は多ければよい\",\"本文から考えられることはどれか。\n① 偏りのある読書には限界がある\n② 新しい本は役に立たない\n③ 読書で視野は広がらない\n④ 興味のない本は完全に無価値である\",\"2,2,1,2,1\"\nDay4,結果と努力,\"スポーツの試合では、勝ったか負けたかという結果に注目が集まりやすい。結果は分かりやすく、記録にも残るため、人の印象に残りやすいからである。しかし、そこに至るまでの努力にも大きな意味がある。練習を重ねた時間、失敗を修正した回数、仲間と工夫した経験は、結果がどうであっても簡単には消えない。\n\nたとえば、試合に負けたとしても、そこで身につけた技術や考え方は次の場面で生きる。練習で積み重ねた集中力や、あきらめずに取り組む姿勢は、勉強や日常生活にもつながる。つまり、結果は一つの到達点にすぎず、努力の過程はその人の中に残る財産である。\n\nもちろん、努力しただけで必ず望む結果が得られるとは限らない。それでも、努力を続けることで得られる経験や成長は、結果だけでは測れない価値を持っている。結果と努力のどちらか一方だけを見るのではなく、両方を見て考えることが大切なのである。\",\"人が注目しやすいものはどれか。\n① 努力の回数\n② 試合の結果\n③ 仲間の人数\n④ 練習時間だけ\",\"「しかし」が示す内容として最も適切なのはどれか。\n① 努力にも意味がある\n② 結果だけが大切である\n③ 勝敗は関係ない\n④ 練習は不要である\",\"努力の過程が財産だといえる理由はどれか。\n① 記録に残るから\n② その人の中に残るから\n③ 必ず勝てるから\n④ 有名になるから\",\"本文の要旨として最も適切なのはどれか。\n① 結果だけを見るべきだ\n② 努力の価値も結果と同じくらい大切である\n③ 試合は負ければ無意味だ\n④ 練習は長いほどよい\",\"本文から考えられることはどれか。\n① 経験は他の場面にも生きる\n② 負けたら何も残らない\n③ 結果が悪ければ努力は無価値である\n④ 努力は記録にならない\",\"2,1,2,2,1\"\nDay5,小さな仕組みの変化,\"ある店では、買い物袋を有料にした。すると、それまで何となく袋をもらっていた客の中に、持参の袋を使う人が増えた。たった一つの制度の変更でも、人の行動は変わることがある。\n\nこの変化は、店側にとっても客側にとっても小さく見えるかもしれない。しかし、こうした小さな工夫が積み重なると、習慣そのものを変えるきっかけになる。人は自分が強く意識していないことでも、仕組みが変わると行動を見直す場合があるのである。\n\nたとえば、教室で提出物の締め切りが少し早く設定されただけで、早めに準備する生徒が増えることがある。環境やルールのわずかな違いが、全体の動きに影響するのである。だからこそ、何かを変えたいときは、大きな改革だけでなく、小さな仕組みの見直しにも目を向ける必要がある。\",\"店が行ったことはどれか。\n① 値下げした\n② 袋を有料にした\n③ 閉店した\n④ 商品を増やした\",\"その結果どうなったか。\n① 袋を持参する人が増えた\n② 客が全員来なくなった\n③ 商品が減った\n④ 店が広くなった\",\"筆者が伝えたいことはどれか。\n① 袋は高い\n② 小さな変更でも行動は変わる\n③ 客は必ず袋を忘れる\n④ 店は大きい方がよい\",\"本文の要旨として最も適切なのはどれか。\n① 仕組みの変化は人の行動に影響することがある\n② 買い物袋は不要である\n③ 教室の提出物は遅い方がよい\n④ 人は変わらない\",\"本文から考えられることはどれか。\n① 小さな工夫が習慣を変えることがある\n② 大きな改革しか意味がない\n③ ルールは行動に関係しない\n④ 締め切りは無視してよい\",\"2,1,2,1,1\"\nDay6,通信手段の変化,\"昔は、遠くの人と連絡を取るために手紙が使われていた。返事が届くまでに時間はかかったが、文章を丁寧に書くことで、気持ちをじっくり伝えることができた。現在では電子メールやメッセージアプリが普及し、短時間でやり取りできるようになった。\n\nこの変化によって、連絡の速さは大きく向上した。待ち時間が短くなり、必要な情報をすばやく共有できるため、生活の多くの場面で便利になっている。ただし、早く伝えられるからこそ、内容をよく確かめずに送ってしまう危険もある。便利さと注意の両方が必要である。\n\n通信手段は時代とともに変わるが、人と人とのつながりを支える役割は変わらない。形は変わっても、相手に分かりやすく伝えたいという気持ちは共通している。道具が変わることで表現のしかたは変化しても、伝えたいという目的は今も昔も同じなのである。\",\"昔使われていた連絡手段はどれか。\n① 手紙\n② アプリ\n③ 電子メール\n④ テレビ電話\",\"現在普及しているものはどれか。\n① のろし\n② 手紙だけ\n③ 電子メールやメッセージアプリ\n④ 伝書鳩\",\"現在の通信手段の利点として書かれているものはどれか。\n① 返事が遅い\n② 短時間でやり取りできる\n③ 文章が書けない\n④ 紙が多く必要\",\"本文の要旨として最も適切なのはどれか。\n① 通信手段は変化しても目的は変わらない\n② 手紙は使うべきでない\n③ メールは危険だけである\n④ 連絡は不要である\",\"本文から考えられることはどれか。\n① 便利さには注意も必要である\n② 速い通信は必ず正しい\n③ 昔の方法は役に立たない\n④ 道具が変われば目的も消える\",\"1,3,2,1,1\"\nDay7,物語を読む力,\"物語を読むと、登場人物が何を考え、何を感じているのかを想像することになる。文字として書かれていない気持ちまで考えながら読むので、読む人は自然と想像力を働かせる。\n\nさらに、登場人物の立場に立って考えることは、自分とは違う見方を知ることにもつながる。自分ならどうするかを考えるうちに、相手の気持ちや事情を理解する練習になるからである。日常生活でも、意見が違う相手の考えを受け止める力は重要である。物語はその力を育てる助けになる。\n\nもちろん、物語は単に楽しむために読むこともできる。しかし、楽しみながら他者理解の力を養えるところに、物語の大きな価値がある。現実では経験しにくい場面を、言葉の世界を通して体験できることも、読書の魅力の一つである。\",\"物語を読むと主に何を想像するか。\n① 作者の住所\n② 登場人物の気持ち\n③ 本の値段\n④ 出版年\",\"登場人物の立場に立って考えることで養われる力はどれか。\n① 他者理解\n② 計算力\n③ 記憶力だけ\n④ 速読だけ\",\"「しかし」が示す内容として最も適切なのはどれか。\n① 物語には楽しみだけでなく価値がある\n② 物語は読まなくてよい\n③ 想像力は必要ない\n④ 他者理解は関係ない\",\"本文の要旨として最も適切なのはどれか。\n① 物語は楽しむためだけにある\n② 物語は他者理解を育てる助けになる\n③ 物語は現実に役立たない\n④ 登場人物は重要でない\",\"本文から考えられることはどれか。\n① 読書は相手を理解する練習になる\n② 物語は想像力を使わない\n③ 意見の違いは無視してよい\n④ 現実では他人を理解できない\",\"2,1,1,2,1\"\nDay8,話し合いの意味,\"会議や話し合いでは、自分の意見をはっきり述べることが大切である。何を考えているのかを相手に伝えなければ、議論は進まない。しかし、それと同じくらい他人の意見を聞くことも重要である。自分と違う考えに耳を傾けることで、問題を別の角度から見直すことができるからだ。\n\nたとえば、クラスで行事の計画を立てるとき、積極的に意見を言う人だけが集まっても、よい案にはなりにくい。静かに見えている生徒が、実は実用的な視点を持っていることもある。他人の意見を聞くことは、見落としていた点を補うことにつながる。話し合いが役立つのは、複数の考えを合わせてよりよい結論に近づけるからである。\n\nもちろん、意見が違えばすぐにまとまるわけではない。だが、相手の考えを受け止めようとする姿勢があれば、対立を減らしながら前に進むことができる。話し合いとは、ただ発言する場ではなく、互いに理解を深める場なのである。\",\"会議で大切なこととして書かれているものはどれか。\n① 意見を述べること\n② 黙っていること\n③ 帰ること\n④ 寝ること\",\"他人の意見を聞くことが重要な理由はどれか。\n① 静かだから\n② 見落としを補えるから\n③ 長く話せるから\n④ 勝ちやすいから\",\"「しかし」が示す内容として最も適切なのはどれか。\n① 話し合いは聞くことも重要である\n② 話し合いは不要である\n③ 意見は一つでよい\n④ 静かな人は関係ない\",\"本文の要旨として最も適切なのはどれか。\n① 話し合いは発言だけが大切である\n② 話し合いは互いの理解を深める場である\n③ 会議では黙るべきだ\n④ 意見が違うときは話さない方がよい\",\"本文から考えられることはどれか。\n① 双方向のやり取りがよりよい結論につながる\n② 自分の意見だけで十分である\n③ 他人の意見は邪魔である\n④ 話し合いは対立を必ず大きくする\",\"1,2,1,2,1\"\nDay9,植物と光,\"植物は光を利用して成長する。そのため、日当たりのよい場所では育ちやすいが、暗い場所では十分に成長できないことがある。光は植物にとって欠かせない条件の一つである。\n\nただし、植物の種類によって必要な光の量は異なる。強い日差しを好むものもあれば、直射日光を避けた方が育ちやすいものもある。つまり、「植物には光が必要だ」という事実は共通していても、その与え方は一つではない。環境に応じて考える必要がある。\n\nこのことは、植物を育てるときに、ただ明るければよいというわけではないことを示している。水や土だけでなく、光の量や種類にも注意しなければならない。植物ごとの違いを知ることは、うまく育てるための第一歩なのである。\",\"植物が利用するものはどれか。\n① 光\n② 鉄\n③ 音\n④ 温度だけ\",\"日当たりが悪いとどうなることがあるか。\n① よく育つ\n② 十分に成長できないことがある\n③ 花しか咲かない\n④ 必ず枯れる\",\"植物によって異なるものはどれか。\n① 必要な光の量\n② 存在するかどうか\n③ 土の色だけ\n④ 名前だけ\",\"本文の要旨として最も適切なのはどれか。\n① 植物には光が必要だが、種類ごとに適した条件がある\n② 植物はどこでも同じように育つ\n③ 水より光の方が重要でない\n④ 植物は暗い方がよい\",\"本文から考えられることはどれか。\n① 植物ごとに環境を考える必要がある\n② 明るければ全て解決する\n③ 光は全ての植物に不要である\n④ 育て方は一つだけである\",\"1,2,1,1,1\"\nDay10,不安との向き合い方,\"新しいことを始めるとき、不安を感じる人は多い。うまくできるか分からない、失敗したらどうしよう、と考えると足が止まることもある。しかし、不安は必ずしも悪いものではない。不安があるからこそ、事前に準備しようという気持ちが生まれることがあるからだ。\n\nたとえば、発表の前に緊張する人は、原稿を見直したり、声に出して練習したりする。これは不安をなくすためではなく、不安をきっかけに行動しているともいえる。完全に不安を消すことは難しいが、準備や経験によって、落ち着いて取り組めるようになることはある。\n\n大切なのは、不安を感じたときにそれだけで立ち止まらないことである。不安を否定するのではなく、うまく付き合いながら前に進む姿勢が必要だ。新しい挑戦には不安がつきものだが、その不安は工夫や成長の入口にもなるのである。\",\"新しいことを始めるとき、多くの人が感じるものはどれか。\n① 不安\n② 満足\n③ 無関心\n④ 退屈\",\"「しかし」が示す内容として最も適切なのはどれか。\n① 不安には前向きな面もある\n② 不安は完全になくせる\n③ 挑戦は避けるべきだ\n④ 準備は不要である\",\"不安があることで起こることはどれか。\n① 準備しようとする気持ち\n② 何もしない気持ち\n③ 必ず失敗すること\n④ 自信が一気になくなること\",\"本文の要旨として最も適切なのはどれか。\n① 不安はなくなるまで行動してはいけない\n② 不安とうまく付き合い前に進むことが大切だ\n③ 不安は悪いだけである\n④ 新しいことは始めない方がよい\",\"本文から考えられることはどれか。\n① 不安は工夫のきっかけになることがある\n② 不安には何の意味もない\n③ 準備しても不安は関係ない\n④ 挑戦に不安は存在しない\",\"1,1,1,2,1\"\nDay11,休み時間の役割,\"授業中は集中して学ぶことが大切である。しかし、ずっと机に向かっているだけでは、かえって頭が疲れてしまうことがある。そこで休み時間には、立ち上がって体を動かしたり、友達と少し話したりすることで、気分を切り替えることができる。\n\n休み時間は単なる「何もしない時間」ではない。短い時間でも心と体を整えることで、次の授業に集中しやすくなる。また、友達との会話を通して、授業とは違う視点に触れることもある。気持ちがほぐれると、学習への向き合い方も変わる。\n\nもちろん、休み時間に遊びすぎると授業の準備ができなくなる。大事なのは、休む目的を意識して使うことである。休むことは学習の妨げではなく、学び続けるための条件の一つなのである。\",\"休み時間にできることとして書かれているものはどれか。\n① 体を動かす\n② 宿題を増やす\n③ 授業を止める\n④ 教科書を捨てる\",\"「しかし」が示す内容として最も適切なのはどれか。\n① 休み時間は意味がある\n② 休み時間は不要である\n③ 授業だけが大切である\n④ 休むと勉強できない\",\"休み時間が大切な理由はどれか。\n① 次の授業に集中しやすくなるから\n② 遊ぶ時間が長くなるから\n③ 先生がいなくなるから\n④ 勉強を忘れられるから\",\"本文の要旨として最も適切なのはどれか。\n① 休み時間は学習の妨げである\n② 休み時間は学び続けるために必要である\n③ 授業中も休んでよい\n④ 休み時間は長いほどよい\",\"本文から考えられることはどれか。\n① 休むことは集中を助ける場合がある\n② 休み時間には何もしない方がよい\n③ 会話は学習に関係ない\n④ 遊ぶほど授業がよくなる\",\"1,1,1,2,1\"\nDay12,メモを取る意味,\"話を聞いているときにメモを取ると、内容をただ聞き流すだけになりにくい。大事だと思った部分を書きとめることで、あとから見直しやすくなるからである。\n\nまた、メモを取るには、話の中から必要な情報を選び取る作業が必要になる。そのため、ただ写すだけでなく、何が重要かを考えながら聞くことになる。これは理解を深める助けになる。内容を整理しながら受け取ることで、記憶にも残りやすくなる。\n\nもちろん、全部を書こうとすると話を聞けなくなってしまう。大切なのは、要点をおさえることである。メモは、聞いた内容を覚えるための道具であると同時に、自分の理解を整えるための道具でもある。\",\"メモを取るとどうなりやすいか。\n① 内容を聞き流しにくい\n② 全部忘れる\n③ 集中できなくなる\n④ 話が止まる\",\"メモを取るときに必要な作業はどれか。\n① 必要な情報を選び取る\n② 全部を丸写しする\n③ 話をやめる\n④ 何も考えない\",\"「もちろん」が示す内容として最も適切なのはどれか。\n① 全部を書くと話を聞けなくなる\n② メモは不要である\n③ 聞く必要はない\n④ 要点は関係ない\",\"本文の要旨として最も適切なのはどれか。\n① メモは要点をおさえて理解を助ける\n② メモは字をきれいに書くためにある\n③ メモは全部写すのが大切だ\n④ メモは使わない方がよい\",\"本文から考えられることはどれか。\n① メモは理解と記憶を助ける\n② 聞くだけで十分である\n③ 情報は選ばなくてよい\n④ メモは後で見返す必要がない\",\"1,1,1,1,1\"\nDay13,目標を立てる,\"目標を立てることには意味がある。何をめざすのかがはっきりすると、今やるべきことが見えやすくなるからである。目標がないまま動くと、頑張っているつもりでも進む方向がぶれやすい。\n\nただし、目標は高すぎても低すぎてもよくない。高すぎる目標は最初から無理だと感じさせ、低すぎる目標は成長の実感を得にくくする。自分の力より少し上をめざすくらいが、努力を続けやすい場合が多い。小さな達成を積み重ねることで、自信も生まれる。\n\n目標は、ただ決めて終わりではない。途中で見直し、必要なら修正することも大切である。状況は変わるので、目標もそれに合わせて調整する必要がある。大事なのは、目標を通して自分の行動を整えることである。\",\"目標を立てると何が見えやすくなるか。\n① 今やるべきこと\n② 他人の成績\n③ 過去の失敗だけ\n④ 休み時間\",\"「ただし」が示す内容として最も適切なのはどれか。\n① 目標は高すぎても低すぎてもよくない\n② 目標は高いほどよい\n③ 目標は低いほどよい\n④ 目標は不要である\",\"自分の力より少し上をめざすとどうなりやすいか。\n① 努力を続けやすい\n② 必ず失敗する\n③ 何もしなくなる\n④ 目標が消える\",\"本文の要旨として最も適切なのはどれか。\n① 目標は行動を整える助けになる\n② 目標は決める必要がない\n③ 高い目標だけが正しい\n④ 達成は一度で十分である\",\"本文から考えられることはどれか。\n① 目標は見直しながら使うとよい\n② 目標は変えてはいけない\n③ 低い目標ほど成長しやすい\n④ 目標を立てると迷いが増える\",\"1,1,1,1,1\"\nDay14,道具を使いこなす,\"便利な道具は、使い方を知っている人にとって大きな助けになる。たとえば辞書や検索機能は、分からない言葉を調べるときに役立つ。しかし、道具が便利だからといって、使う側が何も考えなくてよいわけではない。\n\n辞書で調べるときも、意味を並べて読むだけでは十分ではない。どの意味が文脈に合うのかを考えなければ、正しく理解できないことがある。検索機能も同じで、出てきた情報をそのまま信じるのではなく、他の情報と比べて確かめる姿勢が必要だ。道具は答えを早く見つける助けにはなるが、判断を代わってくれるわけではない。\n\nだからこそ、便利な道具を使うときほど、自分で考える力が必要になる。道具を使いこなすとは、道具に頼りきることではなく、道具を活かして自分の理解を深めることである。\",\"便利な道具として挙げられているものはどれか。\n① 辞書や検索機能\n② 黒板とチョーク\n③ 時計だけ\n④ 机といす\",\"「しかし」が示す内容として最も適切なのはどれか。\n① 道具が便利でも考える必要がある\n② 道具は役に立たない\n③ 検索は使わない方がよい\n④ 辞書は読むだけでよい\",\"検索機能を使うときに必要な姿勢はどれか。\n① 出た情報をそのまま信じる\n② 他の情報と比べて確かめる\n③ 情報を見ない\n④ 一つだけ見て終わる\",\"本文の要旨として最も適切なのはどれか。\n① 道具を使いこなすには自分で考える力がいる\n② 便利な道具は判断もしてくれる\n③ 検索すれば十分である\n④ 道具は使わない方がよい\",\"本文から考えられることはどれか。\n① 道具は理解を深める助けになるが判断は自分でする必要がある\n② 道具は答えを全部決めてくれる\n③ 考える力は道具で代用できる\n④ 便利さが増えるほど確認は不要になる\",\"1,1,2,1,1\"\nDay15,地域を支える場所,\"図書館や公民館のような場所は、本を借りたり勉強したりするだけの施設ではない。そこでは、子ども向けの行事や地域の集まりが行われ、人と人が出会うきっかけも生まれる。\n\n地域にこうした場所があると、年齢や立場の違う人どうしが自然に交流しやすくなる。普段は会わない人と話すことで、地域の中に新しいつながりができることもある。また、何かを学びたいときに相談できる場があることは、暮らしの安心にもつながる。施設の役割は、そこに何が置かれているかだけでは決まらない。どのように使われているかによって、その価値は変わる。\n\nだから、公共の場所を考えるときは、建物の大きさや新しさだけを見るのでは足りない。人が集まり、支え合い、学び合う場として機能しているかどうかが重要である。\",\"図書館や公民館で行われることとして書かれているものはどれか。\n① 地域の集まり\n② 工場の作業\n③ 病院の手術\n④ 試験監督\",\"「施設の役割は、そこに何が置かれているかだけでは決まらない」とあるが、何が大切だといえるか。\n① 建物の高さ\n② どのように使われているか\n③ 外壁の色だけ\n④ 営業時間だけ\",\"地域にこうした場所があるとどうなるか。\n① 人どうしが交流しやすくなる\n② 人が会わなくなる\n③ 学びが減る\n④ 安心につながらない\",\"本文の要旨として最も適切なのはどれか。\n① 公共の場所は人が集まり支え合う機能が大切である\n② 図書館は本を置く場所にすぎない\n③ 公民館は古い方がよい\n④ 地域の交流は必要ない\",\"本文から考えられることはどれか。\n① 場所の価値は使われ方で変わる\n② 新しい建物なら必ず役立つ\n③ 大きい施設ほど交流しにくい\n④ 何が置かれているかだけが重要である\",\"1,2,1,1,1\"\nDay16,情報を見極める,\"今は、誰でも簡単に情報を発信できる時代である。調べものをすると、すぐに多くの答えが見つかるが、そこにある内容がすべて正しいとは限らない。\n\n情報を受け取る側には、内容をそのまま受け入れるのではなく、確かめる力が求められる。たとえば、同じ話題でも、書いた人の立場によって強調する点が違うことがある。ある情報を見たら、別の情報源も確かめ、内容が一致しているかを見直すことが大切だ。情報が多いほど、選ぶ力が必要になるのである。\n\n便利な時代になったからこそ、情報との付き合い方が重要になる。早く見つかることと、正しいことは同じではない。たくさんの情報の中から必要なものを見極める姿勢が、これからはますます大切になる。\",\"今の時代について述べられていることはどれか。\n① 誰でも簡単に情報を発信できる\n② 情報は少ない\n③ 調べものはできない\n④ 正しい情報しかない\",\"「しかし」が示す内容として最も適切なのはどれか。\n① 情報は確かめる必要がある\n② 情報はすべて正しい\n③ 情報は役に立たない\n④ 発信は難しい\",\"同じ話題でも違いが出る理由はどれか。\n① 書いた人の立場が違うから\n② 文字数が違うから\n③ 読む人が少ないから\n④ 話題が消えるから\",\"本文の要旨として最も適切なのはどれか。\n① 情報は早く見つかればよい\n② 情報は見極める力が大切である\n③ 情報は多い方が無条件に正しい\n④ 情報は必要ない\",\"本文から考えられることはどれか。\n① 複数の情報源を確かめるとよい\n② 一つの情報だけで十分である\n③ 早い情報は必ず正確である\n④ 情報が多いほど選ぶ必要はない\",\"1,1,1,2,1\"\nDay17,時間の使い方,\"一日は誰にとっても同じ長さである。しかし、その時間をどう使うかで、感じられる充実度は大きく変わる。だらだらと過ごした一日は短く感じ、目的をもって動いた一日は長くても満足感が残ることがある。\n\n時間をうまく使うためには、やることを整理する必要がある。今すぐやることと後でよいことを分けるだけでも、気持ちは落ち着きやすくなる。また、休む時間も予定の中に入れることで、集中力を保ちやすくなる。時間は使い切るものではなく、配り方を考えるものだと言える。\n\nもちろん、予定を詰め込みすぎると逆に疲れてしまう。大切なのは、忙しくすることではなく、自分に合った使い方を見つけることである。限られた時間をどう生かすかは、その人の行動の質を表すのである。\",\"一日について述べられていることはどれか。\n① 誰にとっても同じ長さである\n② 人によって長さが変わる\n③ 短い日もある\n④ 夜だけは長い\",\"「しかし」が示す内容として最も適切なのはどれか。\n① 時間の使い方で充実度は変わる\n② 時間は増やせる\n③ 予定は不要である\n④ 休むと損をする\",\"時間をうまく使うために大切なことはどれか。\n① やることを整理する\n② 全部を同時にする\n③ 予定を入れない\n④ 休みをなくす\",\"本文の要旨として最も適切なのはどれか。\n① 時間は使い切るものではなく配り方を考えるものだ\n② 忙しいほどよい\n③ 休みは必要ない\n④ 予定は多いほどよい\",\"本文から考えられることはどれか。\n① 自分に合った時間の使い方が大切である\n② 予定は詰め込むほどよい\n③ 休む時間は邪魔である\n④ 時間の使い方は結果に関係しない\",\"1,1,1,1,1\"\nDay18,比べることで見えること,\"何かを評価するとき、人は一つの結果だけを見て判断しがちである。しかし、別の基準や別の例と比べることで、見え方は大きく変わる。たとえば、ある点数が高いのか低いのかは、平均や他の人の成績を見なければ分かりにくい。\n\n比べることの意味は、単に優劣を決めることではない。違いを知ることで、それぞれの特徴を理解しやすくなることにある。自分の成績を見直すときも、他人と比べるだけでなく、以前の自分と比べることで伸びた部分が見える。比較は、物事をより立体的に考えるための手がかりなのである。\n\nもちろん、比べすぎると余計な不安につながることもある。大切なのは、比較を競争のためだけに使うのではなく、理解を深めるために使うことである。比べる視点を持つことで、表面だけでは見えない本質に近づける。\",\"一つの結果だけを見るとどうなりやすいか。\n① 判断しにくい\n② 必ず正確に分かる\n③ 比べる必要がなくなる\n④ 理解が深まりすぎる\",\"「しかし」が示す内容として最も適切なのはどれか。\n① 比べることには理解を深める意味がある\n② 比べることは無意味である\n③ 比べると必ず負ける\n④ 比較は必要ない\",\"自分の成績を見るときに役立つ比べ方はどれか。\n① 以前の自分と比べる\n② 全員と同じにする\n③ 見ない\n④ 他人だけを見る\",\"本文の要旨として最も適切なのはどれか。\n① 比較は本質を考える手がかりになる\n② 比べることは競争だけのためである\n③ 他人と比較しない方がよい\n④ 基準は一つで十分である\",\"本文から考えられることはどれか。\n① 比較は使い方次第で理解に役立つ\n② 比べると必ず不安になる\n③ 比較は常に悪い\n④ 違いを知る必要はない\",\"1,1,1,1,1\"\nDay19,観察する習慣,\"毎日見ているものは、変化に気づきにくい。たとえば、通学路の木や教室の掲示物は、少しずつ変わっていても、いつもの景色として見過ごしてしまうことがある。しかし、注意して観察すると、季節の移り変わりや人の工夫が見えてくる。\n\n観察には、ただ見るだけでなく、違いを見つけようとする姿勢が必要である。昨日と今日の違い、以前と今の違いを意識すると、これまで気づかなかったことが分かるようになる。小さな変化に目を向けることで、周囲をより深く理解できる。\n\nこのような見方は、勉強にも役立つ。問題を解くときも、似ているように見えるものの違いを見分ける力が必要だからである。よく観察する習慣は、日常の気づきを増やすだけでなく、考える力を育てる土台にもなる。\",\"毎日見ているものはどうなりやすいか。\n① 変化に気づきにくい\n② 必ず大きく変わる\n③ 見慣れない\n④ 消えてしまう\",\"観察に必要な姿勢はどれか。\n① 違いを見つけようとする\n② 何も考えない\n③ 一度見て終わる\n④ 覚えない\",\"観察すると分かるようになることはどれか。\n① 季節の移り変わりや人の工夫\n② 点数だけ\n③ 住所\n④ 時間だけ\",\"本文の要旨として最も適切なのはどれか。\n① 観察する習慣は考える力の土台になる\n② 見るだけで十分である\n③ 変化は気にしなくてよい\n④ 勉強に観察は不要である\",\"本文から考えられることはどれか。\n① 小さな違いに目を向けることが理解を深める\n② 変化は無視してよい\n③ 観察は特別な人だけのもの\n④ 違いを探す必要はない\",\"1,1,1,1,1\"\nDay20,学びを続ける理由,\"学びには、知識を増やすだけでなく、自分の考え方を見直す働きもある。新しい内容に触れると、それまで当然だと思っていた見方が変わることがあるからだ。\n\nたとえば、ある問題について一つの答えしかないと思っていた人が、別の考え方を知ると、物事には複数の見方があると気づくことがある。これは知識が増えたというだけでなく、考える幅が広がったことを意味する。学びが続くほど、自分の中の判断基準も少しずつ育っていく。\n\nもちろん、学びはすぐに成果として見えるとは限らない。それでも、積み重ねた知識や経験は、いざというときの判断を助ける。だから学ぶことは、今のためだけでなく、これからの自分を支える準備でもあるのである。\",\"学びにはどのような働きがあるか。\n① 考え方を見直す\n② 体を強くする\n③ 眠気を増やす\n④ 時間をなくす\",\"別の考え方を知るとどうなることがあるか。\n① 物事には複数の見方があると気づく\n② 答えは一つだけだと分かる\n③ 何も考えなくなる\n④ 学びが終わる\",\"「もちろん」が示す内容として最も適切なのはどれか。\n① 学びはすぐに成果として見えないことがある\n② 学びは不要である\n③ 学べば必ず試験がなくなる\n④ 知識は増えない\",\"本文の要旨として最も適切なのはどれか。\n① 学びは今と未来の自分を支える\n② 学びは知識を増やすだけである\n③ 学びはすぐ結果が出なければ意味がない\n④ 学ぶ必要はない\",\"本文から考えられることはどれか。\n① 積み重ねた経験は判断を助ける\n② 学びは一回で十分である\n③ 考え方は変えない方がよい\n④ 成果が見えなければ続ける意味はない\",\"1,1,1,1,1\"\n";
+
+function parseCSV(text) {
+  const input = String(text ?? '').replace(/^\uFEFF/, '');
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let i = 0;
+  let inQuotes = false;
+  while (i < input.length) {
+    const ch = input[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (input[i + 1] === '"') {
+          cell += '"';
+          i += 2;
+        } else {
+          inQuotes = false;
+          i += 1;
+        }
+      } else {
+        cell += ch;
+        i += 1;
+      }
+      continue;
+    }
+    if (ch === '"') { inQuotes = true; i += 1; continue; }
+    if (ch === ',') { row.push(cell); cell = ''; i += 1; continue; }
+    if (ch === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; i += 1; continue; }
+    if (ch === '\r') { i += 1; continue; }
+    cell += ch; i += 1;
+  }
+  row.push(cell);
+  rows.push(row);
+  return rows.filter(r => r.some(v => String(v).trim() !== ''));
+}
+
+function parseQuestion(raw) {
+  const lines = String(raw ?? '').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  const stem = lines[0] ?? '';
+  const choices = lines.slice(1).map(line => line.replace(/^[①②③④1-4]+[\s　]*/, '').trim());
+  return { stem, choices };
+}
+
+function parseQuizData(text) {
+  const rows = parseCSV(text);
+  if (!rows.length) return [];
+  const headers = rows[0];
+  const expected = ['day', 'title', 'passage', 'q1', 'q2', 'q3', 'q4', 'q5', 'answer_key'];
+  const normalizedHeaders = headers.map(h => String(h ?? '').trim());
+  const missing = expected.filter(k => !normalizedHeaders.includes(k));
+  if (missing.length) throw new Error(`CSVの列が足りません: ${missing.join(', ')}`);
+  return rows.slice(1).map(row => {
+    const obj = Object.fromEntries(headers.map((h, idx) => [String(h ?? '').trim(), row[idx] ?? '']));
+    const answerKey = String(obj.answer_key ?? '').split(',').map(v => Number.parseInt(v.trim(), 10));
+    return {
+      day: String(obj.day ?? ''),
+      title: String(obj.title ?? ''),
+      passage: String(obj.passage ?? ''),
+      questions: [1,2,3,4,5].map(n => parseQuestion(obj[`q${n}`])),
+      answerKey,
+    };
+  });
+}
+
+const state = {
+  sourceText: defaultCsv,
+  selectedDay: 0,
+  answers: {},
+  gradedScores: {},
+  fileName: 'chiba_kokugo_levelA_day1-20.csv（埋め込み済み）',
+  loadError: ''
+};
+
+let quizzes = [];
+const el = {
+  errorBox: document.getElementById('errorBox'),
+  countText: document.getElementById('countText'),
+  dayTabs: document.getElementById('dayTabs'),
+  contentArea: document.getElementById('contentArea'),
+  fileInput: document.getElementById('fileInput'),
+  fileName: document.getElementById('fileName'),
+  restoreBtn: document.getElementById('restoreBtn'),
+  clearAllBtn: document.getElementById('clearAllBtn'),
+};
+
+function loadQuizzes() {
+  try {
+    quizzes = parseQuizData(state.sourceText);
+    state.loadError = '';
+    if (state.selectedDay >= quizzes.length) state.selectedDay = 0;
+  } catch (err) {
+    state.loadError = err instanceof Error ? err.message : 'CSVの読み込みに失敗しました。';
+    quizzes = [];
+  }
+}
+
+function answerFor(dayIndex, qIndex) {
+  return state.answers[`${dayIndex}-${qIndex}`] ?? null;
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function render() {
+  loadQuizzes();
+  el.errorBox.style.display = state.loadError ? 'block' : 'none';
+  el.errorBox.textContent = state.loadError;
+  el.countText.textContent = `全 ${quizzes.length} 日分`;
+  el.fileName.textContent = `現在のファイル: ${state.fileName}`;
+  el.dayTabs.innerHTML = '';
+
+  quizzes.forEach((quiz, index) => {
+    const answered = quiz.questions.filter((_q, qIdx) => answerFor(index, qIdx) !== null).length;
+    const score = state.gradedScores[index];
+    const btn = document.createElement('button');
+    btn.className = 'daybtn' + (index === state.selectedDay ? ' active' : '');
+    btn.innerHTML = `
+      <div class="day">${quiz.day}</div>
+      <div class="title">${escapeHtml(quiz.title)}</div>
+      <div class="meta">${answered}/${quiz.questions.length}${typeof score === 'number' ? ` ・ ${score}点` : ''}</div>
+    `;
+    btn.onclick = () => { state.selectedDay = index; render(); };
+    el.dayTabs.appendChild(btn);
+  });
+
+  const quiz = quizzes[state.selectedDay];
+  if (!quiz) {
+    el.contentArea.innerHTML = '<div class="card main"><div class="notice">問題セットが読み込めませんでした。CSVの形式を確認してください。</div></div>';
+    return;
+  }
+
+  const answeredCount = quiz.questions.filter((_q, idx) => answerFor(state.selectedDay, idx) !== null).length;
+  const currentScore = quiz.questions.reduce((sum, _q, idx) => sum + (answerFor(state.selectedDay, idx) === quiz.answerKey[idx] ? 1 : 0), 0);
+  const gradedScore = state.gradedScores[state.selectedDay];
+  const graded = typeof gradedScore === 'number';
+
+  const questionsHtml = quiz.questions.map((question, qIndex) => {
+    const selected = answerFor(state.selectedDay, qIndex);
+    const correct = quiz.answerKey[qIndex];
+    return `
+      <div class="q">
+        <div class="qhead">
+          <h3 class="qtitle">問${qIndex + 1}. ${escapeHtml(question.stem)}</h3>
+          ${graded ? `<div class="mark ${selected === correct ? 'ok' : 'ng'}">${selected === correct ? '正解' : '不正解'}</div>` : ''}
+        </div>
+        <div class="choices">
+          ${question.choices.map((choice, cIdx) => {
+            const n = cIdx + 1;
+            const picked = selected === n;
+            const isCorrect = graded && correct === n;
+            const isWrongPick = graded && picked && selected !== correct;
+            const cls = ['choice'];
+            if (picked) cls.push('selected');
+            if (isCorrect) cls.push('correct');
+            if (isWrongPick) cls.push('wrong');
+            return `<button class="${cls.join(' ')}" data-q="${qIndex}" data-c="${n}"><div class="num">${n}</div><div>${escapeHtml(choice)}</div></button>`;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  el.contentArea.innerHTML = `
+    <div class="layout">
+      <div class="card main">
+        <div class="quizhead">
+          <div>
+            <div class="dayname">${quiz.day}</div>
+            <h2 class="quiztitle">${escapeHtml(quiz.title)}</h2>
+          </div>
+          <div class="countpill">回答済み ${answeredCount} / ${quiz.questions.length}</div>
+        </div>
+        <div class="passage">${escapeHtml(quiz.passage)}</div>
+        ${questionsHtml}
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;">
+          <button id="gradeBtn" class="btn-dark">この日を採点する</button>
+          <button id="clearDayBtn" class="btn-light">この日の解答を消す</button>
+        </div>
+      </div>
+      <div class="card side" style="padding:22px;">
+        <h3>この日の採点結果</h3>
+        <div class="scorebox">
+          ${graded ? `<div class="score">${gradedScore}<small> / ${quiz.questions.length}</small></div><p>この日の点数です。別の日に移っても、採点済みの日の得点は残ります。</p>` : '<p>「この日を採点する」を押すと点数を表示します。</p>'}
+        </div>
+        <h3 style="margin-top:18px;">使い方</h3>
+        <ol>
+          <li>日を選ぶ</li>
+          <li>各問で答えを押す</li>
+          <li>最後に採点する</li>
+        </ol>
+        <p class="notice">正解後は、当たった選択肢が緑、不正解の選択肢が赤で表示されます。</p>
+      </div>
+    </div>
+  `;
+
+  document.querySelectorAll('[data-q]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const q = Number(btn.dataset.q);
+      const c = Number(btn.dataset.c);
+      state.answers[`${state.selectedDay}-${q}`] = c;
+      render();
+    });
+  });
+
+  document.getElementById('gradeBtn').onclick = () => {
+    state.gradedScores[state.selectedDay] = currentScore;
+    render();
+  };
+  document.getElementById('clearDayBtn').onclick = () => {
+    quiz.questions.forEach((_q, idx) => delete state.answers[`${state.selectedDay}-${idx}`]);
+    delete state.gradedScores[state.selectedDay];
+    render();
+  };
+}
+
+el.fileInput.addEventListener('change', async (event) => {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  state.fileName = file.name;
+  state.sourceText = await file.text();
+  state.selectedDay = 0;
+  state.answers = {};
+  state.gradedScores = {};
+  render();
+});
+
+el.restoreBtn.addEventListener('click', () => {
+  state.sourceText = defaultCsv;
+  state.fileName = 'chiba_kokugo_levelA_day1-20.csv（埋め込み済み）';
+  state.selectedDay = 0;
+  state.answers = {};
+  state.gradedScores = {};
+  render();
+});
+
+el.clearAllBtn.addEventListener('click', () => {
+  state.answers = {};
+  state.gradedScores = {};
+  render();
+});
+
+render();
+</script>
+</body>
+</html>
